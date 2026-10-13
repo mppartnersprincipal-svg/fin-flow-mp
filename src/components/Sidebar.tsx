@@ -1,13 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
   DollarSign,
   Receipt,
+  LogOut,
 } from 'lucide-react'
+import { signOut } from '@/lib/auth'
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,6 +20,12 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await signOut()
+    router.replace('/login')
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-[#1a1a2e] text-white">
@@ -54,8 +62,15 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-white/10">
-        <p className="text-xs text-gray-500">MP Financeiro v1.0</p>
+      <div className="px-3 py-4 border-t border-white/10 space-y-3">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+        >
+          <LogOut size={20} strokeWidth={1.8} />
+          Sair
+        </button>
+        <p className="px-3 text-xs text-gray-500">MP Financeiro v1.0</p>
       </div>
     </aside>
   )
