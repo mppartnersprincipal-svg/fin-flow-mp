@@ -13,6 +13,83 @@ import type { Client } from '@/lib/types'
 
 const STATUS_OPTIONS = ['Todos', 'Ativo', 'Inativo', 'Churned'] as const
 
+const STATUS_TO_DB: Record<string, string> = {
+  Ativo: 'active',
+  Inativo: 'inactive',
+  Churned: 'churned',
+}
+
+const STATUS_TO_DISPLAY: Record<string, string> = {
+  active: 'Ativo',
+  inactive: 'Inativo',
+  churned: 'Churned',
+}
+
+async function recalcMonthlySummary(year: number, month: number) {
+  const { data: activeClients } = await supabase
+    .from('clients')
+    .select('monthly_value')
+    .eq('status', 'active')
+  const newMrr = (activeClients || []).reduce((sum, c) => sum + c.monthly_value, 0)
+  const activeCount = (activeClients || []).length
+
+  const { data: fixedRes } = await supabase
+    .from('fixed_costs')
+    .select('amount')
+    .eq('year', year)
+    .eq('month', month)
+  const fixedTotal = (fixedRes || []).reduce((sum, c) => sum + c.amount, 0)
+
+  const { data: varCostRes } = await supabase
+    .from('variable_costs')
+    .select('amount')
+    .eq('year', year)
+    .eq('month', month)
+  const varCostTotal = (varCostRes || []).reduce((sum, c) => sum + c.amount, 0)
+
+  const { data: varRevRes } = await supabase
+    .from('variable_revenues')
+    .select('amount')
+    .eq('year', year)
+    .eq('month', month)
+  const varRevTotal = (varRevRes || []).reduce((sum, c) => sum + c.amount, 0)
+
+  const totalRevenue = newMrr + varRevTotal
+  const totalCosts = fixedTotal + varCostTotal
+  const profit = totalRevenue - totalCosts
+  const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0
+
+  const { data: existing } = await supabase
+    .from('monthly_summary')
+    .select('id')
+    .eq('year', year)
+    .eq('month', month)
+    .single()
+
+  const summaryData = {
+    active_clients: activeCount,
+    mrr: newMrr,
+    variable_revenue: varRevTotal,
+    total_revenue: totalRevenue,
+    fixed_costs: fixedTotal,
+    variable_costs: varCostTotal,
+    total_costs: totalCosts,
+    profit: Math.round(profit * 100) / 100,
+    margin: Math.round(margin * 100) / 100,
+  }
+
+  if (existing) {
+    await supabase.from('monthly_summary').update(summaryData).eq('id', existing.id)
+  } else {
+    await supabase.from('monthly_summary').insert({
+      year,
+      month,
+      ...summaryData,
+      source: 'mixed',
+    })
+  }
+}
+
 function ClientesContent() {
   const searchParams = useSearchParams()
   const selectedYear = Number(searchParams.get('year')) || 2026
@@ -48,13 +125,12 @@ function ClientesContent() {
 
   const filteredClients = useMemo(() => {
     if (statusFilter === 'Todos') return clients
-    return clients.filter(
-      (c) => c.status.toLowerCase() === statusFilter.toLowerCase()
-    )
+    const dbStatus = STATUS_TO_DB[statusFilter]
+    return clients.filter((c) => c.status === dbStatus)
   }, [clients, statusFilter])
 
   const activeClients = useMemo(
-    () => clients.filter((c) => c.status.toLowerCase() === 'ativo'),
+    () => clients.filter((c) => c.status === 'active'),
     [clients]
   )
 
@@ -78,7 +154,7 @@ function ClientesContent() {
     setFormName(client.name)
     setFormService(client.service)
     setFormValue(String(client.monthly_value))
-    setFormStatus(client.status)
+    setFormStatus(STATUS_TO_DISPLAY[client.status] || 'Ativo')
     setFormNotes(client.notes || '')
     setIsModalOpen(true)
   }
@@ -86,11 +162,13 @@ function ClientesContent() {
   async function handleSave() {
     setIsSaving(true)
 
+    const dbStatus = STATUS_TO_DB[formStatus] || 'active'
+
     const payload = {
       name: formName,
       service: formService,
       monthly_value: Number(formValue) || 0,
-      status: formStatus,
+      status: dbStatus,
       notes: formNotes || null,
     }
 
@@ -98,6 +176,25 @@ function ClientesContent() {
       await supabase.from('clients').update(payload).eq('id', editingClient.id)
     } else {
       await supabase.from('clients').insert(payload)
+    }
+
+    // Recalculate MRR for current and future months
+    const now = new Date()
+    const currentMonth = now.getMonth() + 1
+    const currentYear = now.getFullYear()
+    await recalcMonthlySummary(currentYear, currentMonth)
+
+    // Also update future months if they exist
+    for (let m = currentMonth + 1; m <= 12; m++) {
+      const { data: futureMonth } = await supabase
+        .from('monthly_summary')
+        .select('id')
+        .eq('year', currentYear)
+        .eq('month', m)
+        .single()
+      if (futureMonth) {
+        await recalcMonthlySummary(currentYear, m)
+      }
     }
 
     setIsSaving(false)
@@ -112,19 +209,19 @@ function ClientesContent() {
   }
 
   const statusBadge = (status: string) => {
-    const lower = status.toLowerCase()
     const colors: Record<string, string> = {
-      ativo: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      inativo: 'bg-gray-50 text-gray-500 border-gray-200',
+      active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      inactive: 'bg-gray-50 text-gray-500 border-gray-200',
       churned: 'bg-red-50 text-red-600 border-red-200',
     }
+    const displayName = STATUS_TO_DISPLAY[status] || status
     return (
       <span
         className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-          colors[lower] || 'bg-gray-50 text-gray-500 border-gray-200'
+          colors[status] || 'bg-gray-50 text-gray-500 border-gray-200'
         }`}
       >
-        {status}
+        {displayName}
       </span>
     )
   }
