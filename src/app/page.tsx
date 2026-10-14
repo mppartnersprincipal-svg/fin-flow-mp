@@ -265,7 +265,7 @@ function DashboardContent() {
           icon={DollarSign}
           trend={monthTrends?.totalRevenue}
           trendLabel="vs mês ant."
-          colorClass="text-blue-700"
+          colorClass="text-[#F0C239]"
         />
         <KpiCard
           title="MRR"
@@ -273,7 +273,7 @@ function DashboardContent() {
           icon={TrendingUp}
           trend={monthTrends?.mrr}
           trendLabel="vs mês ant."
-          colorClass="text-blue-700"
+          colorClass="text-[#F0C239]"
         />
         <KpiCard
           title="Custos Fixos"
@@ -523,7 +523,7 @@ function DashboardContent() {
                       fontSize: '13px',
                     }}
                   />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="#F0C239" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -37,7 +37,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-[#1E1E2E] text-white">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-black text-white">
       {/* Header */}
       <div className="flex flex-col items-start px-6 py-5 border-b border-white/10">
         <Image

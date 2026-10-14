@@ -47,7 +47,7 @@ export function KpiCard({
             {value}
           </p>
         </div>
-        <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+        <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F0C239]/10 text-[#F0C239]">
           <Icon size={20} />
         </div>
       </div>
