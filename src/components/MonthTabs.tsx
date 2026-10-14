@@ -42,7 +42,7 @@ export function MonthTabs({ selectedYear, selectedMonth }: MonthTabsProps) {
               onClick={() => handleYearChange(year)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 year === selectedYear
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-[#F0C239] text-[#1E1E2E] font-bold shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -62,7 +62,7 @@ export function MonthTabs({ selectedYear, selectedMonth }: MonthTabsProps) {
               onClick={() => handleMonthChange(month)}
               className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                 month === selectedMonth
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-[#F0C239] text-[#1E1E2E] font-bold shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >

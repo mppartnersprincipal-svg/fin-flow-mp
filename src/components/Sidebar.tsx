@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -36,11 +37,18 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-[#1a1a2e] text-white">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-[#1E1E2E] text-white">
       {/* Header */}
-      <div className="flex flex-col items-start px-6 py-6 border-b border-white/10">
-        <h1 className="text-lg font-bold tracking-tight">MP Assessoria Digital</h1>
-        <p className="text-xs text-blue-300/80 mt-0.5">Gestão Financeira</p>
+      <div className="flex flex-col items-start px-6 py-5 border-b border-white/10">
+        <Image
+          src="/logo-mp.png"
+          alt="M|P Assessoria"
+          width={140}
+          height={64}
+          className="object-contain"
+          priority
+        />
+        <p className="text-xs text-[#F0C239]/80 mt-1.5 font-medium">Gestão Financeira</p>
       </div>
 
       {/* Navigation */}
@@ -58,8 +66,8 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-600/20 text-blue-300'
-                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                  ? 'bg-[#F0C239]/15 text-[#F0C239]'
+                  : 'text-gray-300 hover:bg-[#F0C239]/5 hover:text-white'
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />

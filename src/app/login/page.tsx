@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { signIn } from '@/lib/auth'
 
@@ -36,14 +37,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#1a1a2e] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#1E1E2E] px-4">
       <div className="w-full max-w-sm">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            MP Assessoria Digital
-          </h1>
-          <p className="mt-1 text-sm text-blue-300/80">Gestao Financeira</p>
+        <div className="mb-8 flex flex-col items-center">
+          <Image
+            src="/logo-mp.png"
+            alt="M|P Assessoria"
+            width={180}
+            height={82}
+            className="object-contain"
+            priority
+          />
+          <p className="mt-2 text-sm text-[#F0C239]/80 font-medium">Gestão Financeira</p>
         </div>
 
         {/* Card */}
@@ -69,7 +75,7 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 placeholder="seu@email.com"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-[#F0C239] focus:ring-2 focus:ring-[#F0C239]/20"
               />
             </div>
 
@@ -89,7 +95,7 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
                 placeholder="Digite sua senha"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-[#F0C239] focus:ring-2 focus:ring-[#F0C239]/20"
               />
             </div>
 
@@ -104,7 +110,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-lg bg-[#F0C239] px-4 py-2.5 text-sm font-bold text-[#1E1E2E] transition-colors hover:bg-[#d4aa2e] focus:outline-none focus:ring-2 focus:ring-[#F0C239]/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? 'Entrando...' : 'Entrar'}
             </button>
