@@ -7,6 +7,7 @@ import {
   Users,
   DollarSign,
   Receipt,
+  BarChart3,
   LogOut,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth'
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/receitas-variaveis', label: 'Receitas Variáveis', icon: DollarSign },
   { href: '/custos', label: 'Custos', icon: Receipt },
+  { href: '/visao-anual', label: 'Visão Anual', icon: BarChart3 },
 ]
 
 export function Sidebar() {

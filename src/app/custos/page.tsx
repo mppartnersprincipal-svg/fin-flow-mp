@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, Edit2, Trash2, Receipt, Wallet } from 'lucide-react'
+import { Plus, Edit2, Trash2, Receipt, Wallet, Copy, CheckCircle } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase'
 import { MonthTabs } from '@/components/MonthTabs'
@@ -38,6 +38,9 @@ function CustosContent() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
+  const [duplicateResult, setDuplicateResult] = useState<{ count: number } | null>(null)
   const [editingFixed, setEditingFixed] = useState<FixedCost | null>(null)
   const [editingVariable, setEditingVariable] = useState<VariableCost | null>(null)
 
@@ -209,6 +212,38 @@ function CustosContent() {
     if (!confirm('Tem certeza que deseja excluir este custo?')) return
     await supabase.from('variable_costs').delete().eq('id', id)
     fetchVariableCosts()
+  }
+
+  const nextMonth = selectedMonth === 12 ? 1 : selectedMonth + 1
+  const nextYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear
+
+  async function handleDuplicateMonth() {
+    setIsDuplicating(true)
+    setDuplicateResult(null)
+
+    const recorrentes = fixedCosts.filter((c) => c.cost_type === 'recorrente')
+
+    if (recorrentes.length === 0) {
+      setDuplicateResult({ count: 0 })
+      setIsDuplicating(false)
+      return
+    }
+
+    const newRecords = recorrentes.map((c) => ({
+      year: nextYear,
+      month: nextMonth,
+      category: c.category,
+      description: c.description,
+      amount: c.amount,
+      cost_type: c.cost_type,
+    }))
+
+    const { error } = await supabase.from('fixed_costs').insert(newRecords)
+
+    if (!error) {
+      setDuplicateResult({ count: recorrentes.length })
+    }
+    setIsDuplicating(false)
   }
 
   const typeBadge = (type: string) => {
@@ -392,13 +427,25 @@ function CustosContent() {
             {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
           </p>
         </div>
-        <button
-          onClick={activeTab === 'fixos' ? openNewFixedModal : openNewVariableModal}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-        >
-          <Plus size={18} />
-          Novo Custo
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setDuplicateResult(null)
+              setIsDuplicateModalOpen(true)
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          >
+            <Copy size={18} />
+            Duplicar Mês
+          </button>
+          <button
+            onClick={activeTab === 'fixos' ? openNewFixedModal : openNewVariableModal}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+          >
+            <Plus size={18} />
+            Novo Custo
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -648,6 +695,71 @@ function CustosContent() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Duplicate Month Modal */}
+      <Modal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        title="Duplicar Mês"
+      >
+        {duplicateResult !== null ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3">
+              <CheckCircle size={20} className="text-emerald-600 shrink-0" />
+              <p className="text-sm text-emerald-800">
+                {duplicateResult.count > 0
+                  ? `${duplicateResult.count} custo(s) recorrente(s) duplicado(s) com sucesso para ${MONTH_NAMES[nextMonth - 1]} ${nextYear}.`
+                  : 'Nenhum custo recorrente encontrado neste mês para duplicar.'}
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setIsDuplicateModalOpen(false)}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Duplicar custos fixos recorrentes de{' '}
+              <span className="font-semibold text-gray-900">
+                {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+              </span>{' '}
+              para{' '}
+              <span className="font-semibold text-gray-900">
+                {MONTH_NAMES[nextMonth - 1]} {nextYear}
+              </span>
+              ?
+            </p>
+            <p className="text-xs text-gray-400">
+              Apenas itens com tipo &quot;Recorrente&quot; serão duplicados.
+              Atualmente há{' '}
+              <span className="font-medium text-gray-600">
+                {fixedCosts.filter((c) => c.cost_type === 'recorrente').length}
+              </span>{' '}
+              custo(s) recorrente(s) neste mês.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setIsDuplicateModalOpen(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDuplicateMonth}
+                disabled={isDuplicating}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isDuplicating ? 'Duplicando...' : 'Duplicar'}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )
