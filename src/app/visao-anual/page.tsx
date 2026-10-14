@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3, FileDown, FileSpreadsheet, TrendingUp } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase'
 import {
@@ -72,6 +72,52 @@ function CustomTooltipContent({
   )
 }
 
+function calculateProjections(summaries: MonthlySummary[]): ChartDataItem[] {
+  if (summaries.length < 3) return []
+  const lastMonthWithData = Math.max(...summaries.map((s) => s.month))
+  if (lastMonthWithData >= 12) return []
+
+  const sorted = [...summaries].sort((a, b) => a.month - b.month)
+  const last3 = sorted.slice(-3)
+  const avgGrowthReceita =
+    last3.length >= 2
+      ? last3.reduce((sum, s, i) => {
+          if (i === 0) return 0
+          const prev = last3[i - 1].total_revenue
+          return sum + (prev > 0 ? (s.total_revenue - prev) / prev : 0)
+        }, 0) / (last3.length - 1)
+      : 0
+  const avgGrowthCustos =
+    last3.length >= 2
+      ? last3.reduce((sum, s, i) => {
+          if (i === 0) return 0
+          const prev = last3[i - 1].total_costs
+          return sum + (prev > 0 ? (s.total_costs - prev) / prev : 0)
+        }, 0) / (last3.length - 1)
+      : 0
+
+  const lastSummary = sorted[sorted.length - 1]
+  const projections: ChartDataItem[] = []
+  let prevReceita = lastSummary.total_revenue
+  let prevCustos = lastSummary.total_costs
+
+  for (let m = lastMonthWithData + 1; m <= 12; m++) {
+    const receita = prevReceita * (1 + avgGrowthReceita)
+    const custos = prevCustos * (1 + avgGrowthCustos)
+    projections.push({
+      month: m,
+      name: MONTH_SHORT[m - 1],
+      receita: Math.round(receita * 100) / 100,
+      custos: Math.round(custos * 100) / 100,
+      lucro: Math.round((receita - custos) * 100) / 100,
+      mrr: lastSummary.mrr,
+    })
+    prevReceita = receita
+    prevCustos = custos
+  }
+  return projections
+}
+
 function VisaoAnualContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -116,6 +162,11 @@ function VisaoAnualContent() {
     })
   }, [summaries])
 
+  const projections = useMemo(
+    () => calculateProjections(summaries),
+    [summaries],
+  )
+
   const accumulated = useMemo(() => {
     return {
       clients: summaries.length > 0
@@ -151,23 +202,51 @@ function VisaoAnualContent() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-500">Ano:</span>
-          <div className="flex gap-1">
-            {AVAILABLE_YEARS.map((year) => (
-              <button
-                key={year}
-                onClick={() => navigateYear(year)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                  year === selectedYear
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {year}
-              </button>
-            ))}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-500">Ano:</span>
+            <div className="flex gap-1">
+              {AVAILABLE_YEARS.map((year) => (
+                <button
+                  key={year}
+                  onClick={() => navigateYear(year)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    year === selectedYear
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
           </div>
+          {!loading && summaries.length > 0 && (
+            <div className="flex gap-1">
+              <button
+                onClick={async () => {
+                  const { exportAnualPdf } = await import('@/lib/export')
+                  exportAnualPdf(summaries, selectedYear)
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                title="Exportar PDF"
+              >
+                <FileDown size={14} />
+                PDF
+              </button>
+              <button
+                onClick={async () => {
+                  const { exportAnualExcel } = await import('@/lib/export')
+                  exportAnualExcel(summaries, selectedYear)
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+                title="Exportar Excel"
+              >
+                <FileSpreadsheet size={14} />
+                Excel
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -389,6 +468,107 @@ function VisaoAnualContent() {
               </table>
             </div>
           </div>
+
+          {/* Projections Section */}
+          {projections.length > 0 && (
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                  <TrendingUp size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Projeção — {MONTH_NAMES[projections[0].month - 1]}
+                    {projections.length > 1
+                      ? ` a ${MONTH_NAMES[projections[projections.length - 1].month - 1]}`
+                      : ''}{' '}
+                    {selectedYear}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Baseado na tendência dos últimos 3 meses com dados reais
+                  </p>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-amber-200/60">
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Mês
+                      </th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Receita Projetada
+                      </th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Custos Projetados
+                      </th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Lucro Projetado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projections.map((proj) => (
+                      <tr
+                        key={proj.month}
+                        className="border-b border-amber-100/60"
+                      >
+                        <td className="px-4 py-2.5 font-medium text-gray-700">
+                          {MONTH_NAMES[proj.month - 1]}
+                          <span className="ml-1.5 rounded bg-amber-200/60 px-1 py-0.5 text-[10px] font-semibold text-amber-700">
+                            PROJEÇÃO
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-medium text-blue-700">
+                          {formatCurrency(proj.receita)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-medium text-red-600">
+                          {formatCurrency(proj.custos)}
+                        </td>
+                        <td
+                          className={`px-4 py-2.5 text-right font-medium ${
+                            proj.lucro >= 0
+                              ? 'text-emerald-700'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {formatCurrency(proj.lucro)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-amber-300/60 font-semibold">
+                      <td className="px-4 py-2.5 text-gray-900">
+                        Total Projetado
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-blue-700">
+                        {formatCurrency(
+                          projections.reduce((s, p) => s + p.receita, 0),
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-red-600">
+                        {formatCurrency(
+                          projections.reduce((s, p) => s + p.custos, 0),
+                        )}
+                      </td>
+                      <td
+                        className={`px-4 py-2.5 text-right ${
+                          projections.reduce((s, p) => s + p.lucro, 0) >= 0
+                            ? 'text-emerald-700'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {formatCurrency(
+                          projections.reduce((s, p) => s + p.lucro, 0),
+                        )}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

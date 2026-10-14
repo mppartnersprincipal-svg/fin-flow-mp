@@ -8,6 +8,8 @@ import {
   DollarSign,
   Receipt,
   BarChart3,
+  AlertTriangle,
+  History,
   LogOut,
 } from 'lucide-react'
 import { signOut } from '@/lib/auth'
@@ -18,6 +20,8 @@ const NAV_ITEMS = [
   { href: '/receitas-variaveis', label: 'Receitas Variáveis', icon: DollarSign },
   { href: '/custos', label: 'Custos', icon: Receipt },
   { href: '/visao-anual', label: 'Visão Anual', icon: BarChart3 },
+  { href: '/inadimplencia', label: 'Inadimplência', icon: AlertTriangle },
+  { href: '/historico', label: 'Histórico', icon: History },
 ]
 
 export function Sidebar() {

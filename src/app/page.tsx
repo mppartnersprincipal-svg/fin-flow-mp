@@ -11,6 +11,8 @@ import {
   BarChart3,
   Percent,
   Calculator,
+  FileDown,
+  FileSpreadsheet,
 } from 'lucide-react'
 import {
   PieChart,
@@ -224,11 +226,35 @@ function DashboardContent() {
       {/* Month/Year selector */}
       <MonthTabs selectedYear={selectedYear} selectedMonth={selectedMonth} />
 
-      {/* Page title */}
-      <div className="mt-6 mb-6">
+      {/* Page title + export buttons */}
+      <div className="mt-6 mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">
           Dashboard — {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
         </h2>
+        <div className="flex gap-1">
+          <button
+            onClick={async () => {
+              const { exportDrePdf } = await import('@/lib/export')
+              exportDrePdf(summary, MONTH_NAMES[selectedMonth - 1], selectedYear)
+            }}
+            className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+            title="Exportar DRE em PDF"
+          >
+            <FileDown size={14} />
+            PDF
+          </button>
+          <button
+            onClick={async () => {
+              const { exportDreExcel } = await import('@/lib/export')
+              exportDreExcel(summary, MONTH_NAMES[selectedMonth - 1], selectedYear)
+            }}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+            title="Exportar DRE em Excel"
+          >
+            <FileSpreadsheet size={14} />
+            Excel
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
