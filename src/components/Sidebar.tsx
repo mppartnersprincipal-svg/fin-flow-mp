@@ -9,6 +9,7 @@ import {
   Receipt,
   BarChart3,
   AlertTriangle,
+  Wallet,
   History,
   LogOut,
 } from 'lucide-react'
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/receitas-variaveis', label: 'Receitas Variáveis', icon: DollarSign },
   { href: '/custos', label: 'Custos', icon: Receipt },
   { href: '/visao-anual', label: 'Visão Anual', icon: BarChart3 },
+  { href: '/extrato', label: 'Extrato Asaas', icon: Wallet },
   { href: '/inadimplencia', label: 'Inadimplência', icon: AlertTriangle },
   { href: '/historico', label: 'Histórico', icon: History },
 ]
