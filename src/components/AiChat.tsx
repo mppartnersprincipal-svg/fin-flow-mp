@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Sparkles, X, Send, Loader2 } from 'lucide-react'
+import { Sparkles, X, Send, Loader2, Download } from 'lucide-react'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -206,14 +206,14 @@ export function AiChat() {
 // --- Sub-component for rendering message content with basic formatting ---
 
 function MessageContent({ content }: { content: string }) {
-  // Split by double newlines for paragraphs, render bold **text**
+  // Split by newlines for paragraphs, render bold **text** and markdown links [text](url)
   const paragraphs = content.split('\n')
   return (
     <>
       {paragraphs.map((para, i) => {
         if (!para.trim()) return <br key={i} />
-        // Bold: **text**
-        const parts = para.split(/(\*\*[^*]+\*\*)/)
+        // Split by bold and markdown links
+        const parts = para.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/)
         return (
           <p key={i} className={i > 0 ? 'mt-1' : ''}>
             {parts.map((part, j) => {
@@ -222,6 +222,28 @@ function MessageContent({ content }: { content: string }) {
                   <strong key={j} className="font-semibold">
                     {part.slice(2, -2)}
                   </strong>
+                )
+              }
+              // Markdown link: [text](url)
+              const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+              if (linkMatch) {
+                const linkText = linkMatch[1]
+                const linkUrl = linkMatch[2]
+                const isDownload =
+                  linkUrl.startsWith('/api/export') ||
+                  linkUrl.includes('.pdf')
+                return (
+                  <a
+                    key={j}
+                    href={linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={isDownload}
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-[#F0C239] px-3 py-1.5 text-xs font-semibold text-black no-underline transition-all hover:bg-[#d4aa2e] hover:shadow-md"
+                  >
+                    {isDownload && <Download size={12} />}
+                    {linkText}
+                  </a>
                 )
               }
               return <span key={j}>{part}</span>

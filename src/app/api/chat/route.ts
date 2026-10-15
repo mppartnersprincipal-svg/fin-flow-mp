@@ -31,7 +31,9 @@ Ferramentas disponiveis:
 - query_balance: Buscar saldo da conta Asaas
 - query_revenue: Buscar receita total de um mes
 
-Ao receber perguntas genericas como "como estamos?" ou "resumo do mes", use query_monthly_summary com o mes/ano atual. Se nao souber o mes, use outubro/2026.`
+Ao receber perguntas genericas como "como estamos?" ou "resumo do mes", use query_monthly_summary com o mes/ano atual. Se nao souber o mes, use outubro/2026.
+
+- generate_report: Gerar PDF de DRE mensal ou Visao Anual. Quando o usuario pedir DRE, relatorio, PDF, exportar, etc, use esta ferramenta. Responda com o link de download formatado como: [Clique aqui para baixar o PDF](url)`
 
 // --- Tool definitions ---
 
@@ -139,6 +141,30 @@ const tools: Anthropic.Tool[] = [
       required: ['year', 'month'],
     },
   },
+  {
+    name: 'generate_report',
+    description:
+      'Gera um link para download de relatorio financeiro em PDF. Tipos disponiveis: "dre" (DRE mensal) e "anual" (visao anual).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['dre', 'anual'],
+          description: 'Tipo de relatorio',
+        },
+        year: {
+          type: 'number',
+          description: 'Ano (ex: 2026)',
+        },
+        month: {
+          type: 'number',
+          description: 'Mes (1-12), obrigatorio apenas para DRE',
+        },
+      },
+      required: ['type', 'year'],
+    },
+  },
 ]
 
 // --- Tool execution ---
@@ -166,7 +192,7 @@ async function executeTool(
       const { data, error } = await supabase
         .from('clients')
         .select('monthly_value')
-        .eq('status', 'ativo')
+        .eq('status', 'active')
       if (error) return JSON.stringify({ error: error.message })
       const mrr = (data ?? []).reduce(
         (sum, c) => sum + (c.monthly_value || 0),
@@ -299,6 +325,40 @@ async function executeTool(
           message: `Nao encontrei dados de receita para ${month}/${year}`,
         })
       return JSON.stringify(data)
+    }
+
+    case 'generate_report': {
+      const reportType = input.type as string
+      const year = input.year as number
+      const month = input.month as number | undefined
+      const monthNames = [
+        'Janeiro',
+        'Fevereiro',
+        'Marco',
+        'Abril',
+        'Maio',
+        'Junho',
+        'Julho',
+        'Agosto',
+        'Setembro',
+        'Outubro',
+        'Novembro',
+        'Dezembro',
+      ]
+      if (reportType === 'dre' && month) {
+        return JSON.stringify({
+          download_url: `/api/export/dre?year=${year}&month=${month}`,
+          filename: `DRE-${monthNames[month - 1]}-${year}.pdf`,
+          message: `DRE de ${monthNames[month - 1]} ${year} gerado com sucesso.`,
+        })
+      } else if (reportType === 'anual') {
+        return JSON.stringify({
+          download_url: `/api/export/anual?year=${year}`,
+          filename: `Visao-Anual-${year}.pdf`,
+          message: `Visao Anual de ${year} gerada com sucesso.`,
+        })
+      }
+      return JSON.stringify({ error: 'Tipo de relatorio invalido' })
     }
 
     default:
